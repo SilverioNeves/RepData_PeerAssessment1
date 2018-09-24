@@ -1,25 +1,158 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+author: "Silverio Neves"
+date: "24 September 2018"
+output: html_document
 ---
+
+```{r setoptions, echo=TRUE}
+```
 
 
 ## Loading and preprocessing the data
-
-
+Load data from "activity.csv" in "activity" data.frame
+```{r data}
+library(readr)
+activity <- read_csv("activity.csv")
+d <- dim(activity)
+```
+Data.frame with `r d[1]` observations and `r d[2]` variables ("steps", "date","interval")
 
 ## What is mean total number of steps taken per day?
 
+```{r numberstepsday}
+library(dplyr)
+activityday <- group_by(activity, date)
+sumstepsday <- summarize(activityday, stepsday = sum(steps, na.rm = TRUE))
+m <- as.integer(mean(sumstepsday$stepsday, na.rm = TRUE))
+t <- as.integer(sum(sumstepsday$stepsday, na.rm = TRUE))
+med <- as.integer(median(sumstepsday$stepsday, na.rm = TRUE))
+```
+In average they do `r m` steps per day, with a median of `r med` for a total of `r t` steps, excluding days without steps observation (= NA)
+
+We can see in the plot bellow the behaviour (steps by day)
+
+```{r graphicstepsbyday}
+library(ggplot2)
+ggplot(data=sumstepsday,
+        aes(x=date, y=stepsday)) +
+        geom_line() +
+        geom_point() +
+        scale_color_brewer(palette="Paired")+
+        theme_minimal()+
+        theme(legend.position="right")+
+        labs(title = "Total steps by day", subtitle = "days with no data (NA) are excluded",
+                x = "day", caption = "observations from 2012-10-01 to 2012-11-30",
+                y = "Total steps")
+
+```
 
 
 ## What is the average daily activity pattern?
 
+```{r numberstepsinterval}
+library(dplyr)
+activityinterval <- group_by(activity, interval)
+sumstepsinterval <- summarize(activityinterval, stepsinterval = mean(steps, na.rm = TRUE))
+maxiinterval <- order(sumstepsinterval$stepsinterval, decreasing = TRUE)
+```
+The interval with the maximum steps in average is `r as.integer(sumstepsinterval[maxiinterval[1],1])` with an average of `r as.integer(sumstepsinterval[maxiinterval[1],2])`.
+
+```{r graphicstepsbyinterval}
+library(ggplot2)
+ggplot(data=sumstepsinterval,
+        aes(x=interval, y=stepsinterval)) +
+        geom_line() +
+        geom_point() +
+        scale_color_brewer(palette="Paired")+
+        theme_minimal()+
+        theme(legend.position="right")+
+        labs(title = "Total steps by interval", subtitle = "days with no data (NA) are excluded",
+                x = "interval", caption = "observations from 2012-10-01 to 2012-11-30",
+                y = "Total steps")
+
+```
 
 
 ## Imputing missing values
 
+```{r number.na}
+totalrows <- dim(activity)[1]
+c <- sum(complete.cases(activity))
+s <- sum(is.na(activity$steps))
+```
+The database has `r c` complete cases (rows without missing values). From the "is.na" function we can see that variable "steps" has `r s` NA's values which are precise the difference between total rows of `r totalrows' and complete cases.
+  
+We will fil NAs values with the mean for the specific interval creating a new data.frame "newactivity"
+
+```{r fillna}
+newactivity <- activity
+ridna <- which(is.na(newactivity$steps))
+for(i in ridna){
+        newactivity$steps[i] <- sumstepsinterval$stepsinterval[newactivity$interval[i] == sumstepsinterval$interval] 
+}
+```
+
+```{r newnumberstepsday}
+library(dplyr)
+newactivityday <- group_by(newactivity, date)
+newsumstepsday <- summarize(newactivityday, stepsday = sum(steps, na.rm = TRUE))
+newm <- as.integer(mean(newsumstepsday$stepsday, na.rm = TRUE))
+newt <- as.integer(sum(newsumstepsday$stepsday, na.rm = TRUE))
+newmed <- as.integer(median(newsumstepsday$stepsday, na.rm = TRUE))
+```
+In average they do `r newm` steps per day, with a median of `r newmed` for a total of `r newt` steps, excluding days without steps observation (= NA)
+
+All values grew. Mean from `r m` to `r newm`, and the median from `r med` to `r newmed`. For curiosity, the new mean is equal to the new median.
+
+We can see in the plot bellow the behaviour (steps by day)
+
+```{r newgraphicstepsbyday}
+library(ggplot2)
+ggplot(data=newsumstepsday,
+        aes(x=date, y=stepsday)) +
+        geom_line() +
+        geom_point() +
+        scale_color_brewer(palette="Paired")+
+        theme_minimal()+
+        theme(legend.position="right")+
+        labs(title = "Total steps by day", subtitle = "days with no data (NA) were included by replacing valur with interval mean",
+                x = "day", caption = "observations from 2012-10-01 to 2012-11-30",
+                y = "Total steps")
+
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+First it is necessary to create a new collumn to distinguish from weekday and weekend day. New column has the name "day"
+```{r numberstepsweek}
+library(dplyr)
+
+days <- c("sábado", "domingo") ## need to change for local and system language day names
+newactivity$day <- 0
+for (i in 1:dim(newactivity)[1])
+{
+        if (weekdays(newactivity$date[i]) %in% days) {newactivity$day[i] = "weekend"} else {newactivity$day[i] = "weekday"}
+}
+```
+
+Now we will generate a graphic to compare weekday and weekend days performance
+```{r numberstepsweekreport}
+newactivityweek <- group_by(newactivity, interval, day)
+newsumstepsweek <- summarize(newactivityweek, stepsinterval = sum(steps, na.rm = TRUE))
+
+library(ggplot2)
+ggplot(data=newsumstepsweek,
+        aes(x=interval, y=stepsinterval, col = day)) +
+        geom_line() +
+        geom_point() +
+        facet_grid(day~.) +
+        scale_color_brewer(palette="Paired")+
+        theme_minimal()+
+        theme(legend.position="right")+
+        labs(title = "Total steps by interval", subtitle = "days with no data (NA) were included by replacing value with interval mean",
+                x = "interval", caption = "observations from 2012-10-01 to 2012-11-30",
+                y = "Total steps")
+```
+
