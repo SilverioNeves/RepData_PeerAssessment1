@@ -1,8 +1,10 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: 'Reproducible Research: Peer Assessment 1'
 author: "Silverio Neves"
 date: "24 September 2018"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setoptions, echo=TRUE}
@@ -12,6 +14,7 @@ output: html_document
 ## Loading and preprocessing the data
 Load data from "activity.csv" in "activity" data.frame
 ```{r data}
+if(!require(readr)) install.packages("readr")
 library(readr)
 activity <- read_csv("activity.csv")
 d <- dim(activity)
@@ -21,18 +24,32 @@ Data.frame with `r d[1]` observations and `r d[2]` variables ("steps", "date","i
 ## What is mean total number of steps taken per day?
 
 ```{r numberstepsday}
+if(!require(dplyr)) install.packages("dplyr")
 library(dplyr)
 activityday <- group_by(activity, date)
-sumstepsday <- summarize(activityday, stepsday = sum(steps, na.rm = TRUE))
+sumstepsday <- dplyr::summarise(activityday, stepsday = sum(steps, na.rm = TRUE))
 m <- as.integer(mean(sumstepsday$stepsday, na.rm = TRUE))
 t <- as.integer(sum(sumstepsday$stepsday, na.rm = TRUE))
 med <- as.integer(median(sumstepsday$stepsday, na.rm = TRUE))
 ```
-In average they do `r m` steps per day, with a median of `r med` for a total of `r t` steps, excluding days without steps observation (= NA)
 
-We can see in the plot bellow the behaviour (steps by day)
+In the figure we can see the histogram of the total number of steps taken each day
+
+```{r histogrambase}
+if(!require(ggplot2)) install.packages("ggplot2")
+library(ggplot2)
+qplot(sumstepsday$stepsday, geom="histogram")+
+        labs(title = "Histogram steps by day", subtitle = "days with no data (NA) are excluded",
+                y = "Number of occurences", caption = "observations from 2012-10-01 to 2012-11-30",
+                x = "Total steps per day")
+```
+
+In **average** they do **`r m`** steps per day, with a **median** of **`r med`** for a **total** of **`r t`** steps, excluding days without steps observation (= NA)
+
+We can see in the plot bellow the behaviour (steps by day). A time series plot of the average number of steps taken.
 
 ```{r graphicstepsbyday}
+if(!require(ggplot2)) install.packages("ggplot2")
 library(ggplot2)
 ggplot(data=sumstepsday,
         aes(x=date, y=stepsday)) +
@@ -51,14 +68,16 @@ ggplot(data=sumstepsday,
 ## What is the average daily activity pattern?
 
 ```{r numberstepsinterval}
+if(!require(dplyr)) install.packages("dplyr")
 library(dplyr)
 activityinterval <- group_by(activity, interval)
-sumstepsinterval <- summarize(activityinterval, stepsinterval = mean(steps, na.rm = TRUE))
+sumstepsinterval <- dplyr::summarise(activityinterval, stepsinterval = mean(steps, na.rm = TRUE))
 maxiinterval <- order(sumstepsinterval$stepsinterval, decreasing = TRUE)
 ```
-The interval with the maximum steps in average is `r as.integer(sumstepsinterval[maxiinterval[1],1])` with an average of `r as.integer(sumstepsinterval[maxiinterval[1],2])`.
+The **interval** with the **maximum steps in average** is **`r as.integer(sumstepsinterval[maxiinterval[1],1])`** with an **average** of **`r as.integer(sumstepsinterval[maxiinterval[1],2])`**.
 
 ```{r graphicstepsbyinterval}
+if(!require(ggplot2)) install.packages("ggplot2")
 library(ggplot2)
 ggplot(data=sumstepsinterval,
         aes(x=interval, y=stepsinterval)) +
@@ -81,9 +100,9 @@ totalrows <- dim(activity)[1]
 c <- sum(complete.cases(activity))
 s <- sum(is.na(activity$steps))
 ```
-The database has `r c` complete cases (rows without missing values). From the "is.na" function we can see that variable "steps" has `r s` NA's values which are precise the difference between total rows of `r totalrows' and complete cases.
+The **database** has **`r c` complete cases** (rows without missing values). From the "is.na" function we can see that **variable "steps"** has **`r s` NA's values** which are precise the difference between total rows of `r totalrows' and complete cases.
   
-We will fil NAs values with the mean for the specific interval creating a new data.frame "newactivity"
+We will **fill NAs values** with the **mean** for the specific **interval** creating a new data.frame "newactivity"
 
 ```{r fillna}
 newactivity <- activity
@@ -94,20 +113,34 @@ for(i in ridna){
 ```
 
 ```{r newnumberstepsday}
+if(!require(dplyr)) install.packages("dplyr")
 library(dplyr)
 newactivityday <- group_by(newactivity, date)
-newsumstepsday <- summarize(newactivityday, stepsday = sum(steps, na.rm = TRUE))
+newsumstepsday <- dplyr::summarise(newactivityday, stepsday = sum(steps, na.rm = TRUE))
 newm <- as.integer(mean(newsumstepsday$stepsday, na.rm = TRUE))
 newt <- as.integer(sum(newsumstepsday$stepsday, na.rm = TRUE))
 newmed <- as.integer(median(newsumstepsday$stepsday, na.rm = TRUE))
 ```
-In average they do `r newm` steps per day, with a median of `r newmed` for a total of `r newt` steps, excluding days without steps observation (= NA)
+In **average** they do **`r newm`** steps per day, with a **median** of **`r newmed`** for a **total** of **`r newt`** steps, excluding days without steps observation (= NA)
 
 All values grew. Mean from `r m` to `r newm`, and the median from `r med` to `r newmed`. For curiosity, the new mean is equal to the new median.
+
+In the figure we can see the new histogram of the total number of steps taken each day
+
+```{r histogramnew}
+if(!require(ggplot2)) install.packages("ggplot2")
+library(ggplot2)
+qplot(newsumstepsday$stepsday, geom="histogram")+
+        labs(title = "Histogram steps by day", subtitle = "days with no data (NA) were included by replacing value with interval mean",
+                y = "Number of occurences", caption = "observations from 2012-10-01 to 2012-11-30",
+                x = "Total steps per day")
+```
+
 
 We can see in the plot bellow the behaviour (steps by day)
 
 ```{r newgraphicstepsbyday}
+if(!require(ggplot2)) install.packages("ggplot2")
 library(ggplot2)
 ggplot(data=newsumstepsday,
         aes(x=date, y=stepsday)) +
@@ -116,7 +149,7 @@ ggplot(data=newsumstepsday,
         scale_color_brewer(palette="Paired")+
         theme_minimal()+
         theme(legend.position="right")+
-        labs(title = "Total steps by day", subtitle = "days with no data (NA) were included by replacing valur with interval mean",
+        labs(title = "Total steps by day", subtitle = "days with no data (NA) were included by replacing value with interval mean",
                 x = "day", caption = "observations from 2012-10-01 to 2012-11-30",
                 y = "Total steps")
 
@@ -127,6 +160,7 @@ ggplot(data=newsumstepsday,
 
 First it is necessary to create a new collumn to distinguish from weekday and weekend day. New column has the name "day"
 ```{r numberstepsweek}
+if(!require(dplyr)) install.packages("dplyr")
 library(dplyr)
 
 days <- c("sábado", "domingo") ## need to change for local and system language day names
@@ -139,9 +173,12 @@ for (i in 1:dim(newactivity)[1])
 
 Now we will generate a graphic to compare weekday and weekend days performance
 ```{r numberstepsweekreport}
+if(!require(dplyr)) install.packages("dplyr")
+library(dplyr)
 newactivityweek <- group_by(newactivity, interval, day)
-newsumstepsweek <- summarize(newactivityweek, stepsinterval = sum(steps, na.rm = TRUE))
+newsumstepsweek <- dplyr::summarise(newactivityweek, stepsinterval = sum(steps, na.rm = TRUE))
 
+if(!require(ggplot2)) install.packages("ggplot2")
 library(ggplot2)
 ggplot(data=newsumstepsweek,
         aes(x=interval, y=stepsinterval, col = day)) +
